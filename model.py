@@ -24,8 +24,10 @@ def main(verbose=True, show_features=100, filepath='classifiers/SVM.pkl'):
         ('vect', CountVectorizer()),
         ('tfidf', TfidfTransformer()),
         ('clf', SGDClassifier(penalty='l2', alpha=1e-3,
-                              max_iter=5, tol=None, loss='log', random_state=123))
+                              max_iter=1000, tol=None, loss='log', random_state=123))
     ])
+    if verbose:
+        print('Training Model')
 
     # ================================= Results =================================
     cv_results = cross_validate(clf, train.report, train.NHL, cv=10)['test_score']
