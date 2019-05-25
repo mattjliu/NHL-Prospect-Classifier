@@ -28,7 +28,15 @@ def create_corpus(verbose=True):
 
 	# Define train set
 	mask = (merged['draft_year'] >= 2016) & (merged['NHL'] == False)
+	valid = pd.concat([reports2019,merged[mask][['draft_num','draft_year','name','report']]])
 	train = merged[~mask]
+
+	if not os.path.exists('data/merged'):
+		os.makedirs('data/merged')
+	train.to_csv('data/merged/train.csv')
+	valid.to_csv('data/merged/valid.csv')
+	if verbose:
+		print('Merged data created successfully')
 
 	if not os.path.exists('data/NHLcorpus/true'):
 		os.makedirs('data/NHLcorpus/true')
@@ -44,7 +52,7 @@ def create_corpus(verbose=True):
 		return
 
 	if verbose:
-		print('Corpus created succesfully')
+		print('Corpus created successfully')
 
 if __name__ == '__main__':
 	create_corpus()

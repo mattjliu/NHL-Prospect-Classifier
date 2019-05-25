@@ -1,44 +1,22 @@
 import pandas as pd
 import numpy as np
 import os
-import re
 import sys
 from sklearn.feature_extraction.text import CountVectorizer,TfidfTransformer
 from sklearn.linear_model import SGDClassifier
-from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split,GridSearchCV
-from sklearn import metrics
-from sklearn.exceptions import ConvergenceWarning
+from sklearn.metrics import classification_report
+from sklearn.externals import joblib
 import warnings
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
-def main(verbose=True):
-	reports = pd.read_csv('data/reports/reports_v2.csv',encoding='utf-8')
-	stats = pd.read_csv('data/stats/stats_v2.csv',encoding='utf-8')
-
-	# Format names for fileids
-	reports['name'] = reports['name'].str.replace(' ','_')
-	stats['name'] = stats['name'].str.replace(' ','_')
-	reports['name'] = reports['name'].str.replace('"','')
-	stats['name'] = stats['name'].str.replace('"','')
-
-	# Shift draft numbers because of new jersey's forfeited pick
-	reports_shift = reports[(reports.draft_year == 2011) & (reports.draft_num >= 69)]
-	reports_shift['draft_num'] += 1
-	reports = reports[~reports['name'].isin(reports_shift['name'])]
-	reports = pd.concat([reports,reports_shift])
-
-	reports2019 = reports[reports.draft_year == 2019]
-	reports_hist = reports[reports.draft_year != 2019]
-	merged = pd.merge(reports_hist.drop(columns='name'),stats,on=['draft_year','draft_num'],how='inner')
-	merged['NHL'] = merged['GP'] > 0
-
-	# Define train set
-	mask = (merged['draft_year'] >= 2016) & (merged['NHL'] == False)
-	valid = pd.concat([reports2019,merged[mask][['draft_num','draft_year','name','report']]])
-	train = merged[~mask]
+def main(verbose=True,show_features=100,filepath='classifiers/SVM.pkl'):
+	
+	# ================================= Read in Data =================================
+	train = pd.read_csv('data/merged/train.csv',encoding='utf-8')
+	valid = pd.read_csv('data/merged/valid.csv',encoding='utf-8')
 
 	# ================================= Model and optimization =================================
 	clf = Pipeline([
@@ -66,12 +44,14 @@ def main(verbose=True):
 		print(gs_clf.best_params_)
 		print('================= Steps =================')
 		print(best_clf.steps)
+		print()
 
 	# ================================= Results =================================
-	train_predictions = best_clf.fit(train.report,train.NHL).predict(train.report)
-	valid_predictions = best_clf.fit(train.report,train.NHL).predict(valid.report)
-	train['predictions'] = train_predictions
-	valid['NHL'] = valid_predictions
+	best_clf.fit(train.report,train.NHL)
+	train_predictions,train_proba = best_clf.predict(train.report),best_clf.predict_proba(train.report)
+	valid_predictions,valid_proba = best_clf.predict(valid.report),best_clf.predict_proba(valid.report)
+	train['prediction'],train['probability'] = train_predictions,train_proba.max(axis=1)
+	valid['prediction'],valid['probability'] = valid_predictions,valid_proba.max(axis=1)
 	vect = best_clf.get_params()['vect']
 	tfidf = best_clf.get_params()['tfidf']
 	clf = best_clf.get_params()['clf']
@@ -80,20 +60,49 @@ def main(verbose=True):
 	if not os.path.exists('predictions'):
 		os.makedirs('predictions')
 	if verbose:
+		print(f'Best cross validation score: {gs_clf.best_score_}')
 		print(f'Accuracy on training data: {np.mean(train_predictions == train.NHL)}')
+
+		print('================= Classification Report on Train Set =================')
+		print(classification_report(train.NHL,train.prediction))
+
 		print('================= Erroneous Predictions =================')
-		print(train[train.NHL != train.predictions].drop('report',axis=1))
-		train[train.NHL != train.predictions].to_csv('predictions/erroneous.csv')
+		print(train[train.NHL != train.prediction].drop(columns='report'))
+		train[train.NHL != train.prediction].to_csv('predictions/erroneous.csv')
+
 		for year in valid.draft_year.unique():
 			print(f'================= Predictions for {year} =================')
 			print(valid[valid.draft_year == year])
 			valid[valid.draft_year == year].to_csv(f'predictions/{year}.csv')
+
+		print(f'================= Predictions for all Train Set =================')
+		print(train.drop(columns='report'))
+		train.to_csv('predictions/all_train.csv')
+
+		print(f'================= Predictions for all Validation Set =================')
+		print(valid)
+		valid.to_csv('predictions/all_valid.csv')
+
+		train_true = train[train.NHL == True]
+		train_true['report'] = train_true['report'] .str.lower()
+		train_false = train[train.NHL == False]
+		train_false['report']  = train_false['report'] .str.lower()
+
 		print('================= Important Positive Features =================')
-		for i,j in enumerate(clf.coef_[0].argsort()[-100:][::-1]):
-			print(f'{i+1}:{feature_names[j]}')
+		for i,j in enumerate(clf.coef_[0].argsort()[-show_features:][::-1]):
+			feature = feature_names[j]
+			true_count = train_true['report'].str.contains(feature).sum()
+			false_count = train_false['report'].str.contains(feature).sum()
+			print('{0:3}:{1:20} T:{2:3} F:{3:3}'.format(i+1,feature,true_count,false_count))
+
 		print('================= Important Negative Features =================')
-		for i,j in enumerate(clf.coef_[0].argsort()[:100]):
-			print(f'{i+1}:{feature_names[j]}')
+		for i,j in enumerate(clf.coef_[0].argsort()[:show_features]):
+			feature = feature_names[j]
+			true_count = train_true['report'].str.contains(feature).sum()
+			false_count = train_false['report'].str.contains(feature).sum()
+			print('{0:3}:{1:20} T:{2:3} F:{3:3}'.format(i+1,feature,true_count,false_count))
+
+		joblib.dump(best_clf,filepath)
 
 if __name__ == '__main__':
 	main()

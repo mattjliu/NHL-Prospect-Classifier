@@ -4,7 +4,7 @@ import random
 import pickle
 import re
 
-def display_features(num_features=1000,show_features=200,filepath='classifiers/nltk_nb_filter.pickle',verbose=True):
+def display_features(num_features=1000,show_features=200,filepath='classifiers/nltk_nb.pkl',verbose=True):
 	'''
 	Displays informative features from NHLCorpus
 	'''
