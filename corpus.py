@@ -27,9 +27,10 @@ def create_corpus(verbose=True):
     merged = pd.merge(reports_hist.drop(columns='name'), stats, on=['draft_year', 'draft_num'], how='inner')
     merged['NHL'] = merged['GP'] > 0
 
-    # Define train set
+    # Define train and valid set
     mask = (merged['draft_year'] >= 2016) & (merged['NHL'] == False)
-    valid = pd.concat([reports2019, merged[mask][['draft_num', 'draft_year', 'name', 'report']]])
+    reports2019['draft_team'] = 'TBD'
+    valid = pd.concat([reports2019, merged[mask][['draft_num', 'draft_year', 'draft_team', 'name', 'report']]], sort=False)
     train = merged[~mask]
 
     if not os.path.exists('data/merged'):

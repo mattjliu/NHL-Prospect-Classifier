@@ -13,7 +13,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 
-def main(verbose=True, show_features=100, filepath='classifiers/SVM.pkl'):
+def main(verbose=True, show_features=100, filepath='classifiers/Logistic_Regression.pkl'):
 
     # ================================= Read in Data =================================
     train = pd.read_csv('data/merged/train.csv', encoding='utf-8', index_col=0)
@@ -27,15 +27,15 @@ def main(verbose=True, show_features=100, filepath='classifiers/SVM.pkl'):
                               max_iter=1000, tol=None, loss='log', random_state=123))
     ])
     if verbose:
-        print('Training Model')
+        print('Training Model...')
 
     # ================================= Results =================================
     cv_results = cross_validate(clf, train.report, train.NHL, cv=10)['test_score']
     clf.fit(train.report, train.NHL)
     train_predictions, train_proba = clf.predict(train.report), clf.predict_proba(train.report)
     valid_predictions, valid_proba = clf.predict(valid.report), clf.predict_proba(valid.report)
-    train['prediction'], train['probability'] = train_predictions, train_proba.max(axis=1)
-    valid['prediction'], valid['probability'] = valid_predictions, valid_proba.max(axis=1)
+    train['prediction'], train['confidence'] = train_predictions, train_proba.max(axis=1)
+    valid['prediction'], valid['confidence'] = valid_predictions, valid_proba.max(axis=1)
     vect = clf.get_params()['vect']
     tfidf = clf.get_params()['tfidf']
     clf = clf.get_params()['clf']
