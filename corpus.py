@@ -5,7 +5,7 @@ import io
 pd.options.mode.chained_assignment = None
 
 
-def create_corpus(verbose=True):
+def create_corpus(verbose=True, threshold=20):
 
     reports = pd.read_csv('data/reports/reports_v2.csv', encoding='utf-8')
     stats = pd.read_csv('data/stats/stats_v2.csv', encoding='utf-8')
@@ -25,7 +25,7 @@ def create_corpus(verbose=True):
     reports2019 = reports[reports.draft_year == 2019]
     reports_hist = reports[reports.draft_year != 2019]
     merged = pd.merge(reports_hist.drop(columns='name'), stats, on=['draft_year', 'draft_num'], how='inner')
-    merged['NHL'] = merged['GP'] > 0
+    merged['NHL'] = merged['GP'] > threshold
 
     # Define train and valid set
     mask = (merged['draft_year'] >= 2016) & (merged['NHL'] == False)

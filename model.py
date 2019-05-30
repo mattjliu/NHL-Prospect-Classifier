@@ -13,15 +13,19 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 
-def main(verbose=True, show_features=100, filepath='classifiers/Logistic_Regression.pkl'):
+def train_model(verbose=True, show_features=100, save_path='classifiers', long_reports=True):
 
     # ================================= Read in Data =================================
     train = pd.read_csv('data/merged/train.csv', encoding='utf-8', index_col=0)
     valid = pd.read_csv('data/merged/valid.csv', encoding='utf-8', index_col=0)
 
+    if long_reports:
+        train = train[train.apply(lambda x: x.report.count('.'), axis=1) > 1]
+        valid = valid[valid.apply(lambda x: x.report.count('.'), axis=1) > 1]
+
     # ================================= Model =================================
     clf = Pipeline([
-        ('vect', CountVectorizer()),
+        ('vect', CountVectorizer(stop_words='english')),
         ('tfidf', TfidfTransformer()),
         ('clf', SGDClassifier(penalty='l2', alpha=1e-3,
                               max_iter=1000, tol=None, loss='log', random_state=123))
@@ -41,8 +45,14 @@ def main(verbose=True, show_features=100, filepath='classifiers/Logistic_Regress
     clf = clf.get_params()['clf']
     class_labels = clf.classes_
     feature_names = vect.get_feature_names()
-    if not os.path.exists('predictions'):
-        os.makedirs('predictions')
+
+    if long_reports:
+        dir_name = 'long'
+    else:
+        dir_name = 'all'
+    if not os.path.exists(f'predictions/{dir_name}'):
+        os.makedirs(f'predictions/{dir_name}')
+    filepath = f'{save_path}/Logistic_Regression_{dir_name}.pkl'
     if verbose:
         print(f'Best cross validation score: {max(cv_results)}')
         print(f'Accuracy on training data: {np.mean(train_predictions == train.NHL)}')
@@ -52,20 +62,20 @@ def main(verbose=True, show_features=100, filepath='classifiers/Logistic_Regress
 
         print('================= Erroneous Predictions =================')
         print(train[train.NHL != train.prediction].drop(columns='report'))
-        train[train.NHL != train.prediction].to_csv('predictions/erroneous.csv')
+        train[train.NHL != train.prediction].to_csv(f'predictions/{dir_name}/erroneous.csv', index=False)
 
         for year in valid.draft_year.unique():
             print(f'================= Predictions for {year} =================')
             print(valid[valid.draft_year == year].drop(columns='report'))
-            valid[valid.draft_year == year].to_csv(f'predictions/{year}.csv')
+            valid[valid.draft_year == year].to_csv(f'predictions/{dir_name}/{year}.csv', index=False)
 
         print(f'================= Predictions for all Train Set =================')
         print(train.drop(columns='report'))
-        train.to_csv('predictions/all_train.csv')
+        train.to_csv(f'predictions/{dir_name}/all_train.csv', index=False)
 
         print(f'================= Predictions for all Validation Set =================')
         print(valid.drop(columns='report'))
-        valid.to_csv('predictions/all_valid.csv')
+        valid.to_csv(f'predictions/{dir_name}/all_valid.csv', index=False)
 
         train_true = train[train.NHL == True]
         train_true['report'] = train_true['report'] .str.lower()
@@ -87,9 +97,16 @@ def main(verbose=True, show_features=100, filepath='classifiers/Logistic_Regress
             print('{0:3}:{1:20} T:{2:3} F:{3:3}'.format(i + 1, feature, true_count, false_count))
 
         joblib.dump(clf, filepath)
-        if verbose:
-            print('Model Saved')
+        print('Model Saved')
+
+    else:
+        train[train.NHL != train.prediction].to_csv(f'predictions/{dir_name}/erroneous.csv', index=False)
+        for year in valid.draft_year.unique():
+            valid[valid.draft_year == year].to_csv(f'predictions/{dir_name}/{year}.csv', index=False)
+        train.to_csv(f'predictions/{dir_name}/all_train.csv', index=False)
+        valid.to_csv(f'predictions/{dir_name}/all_valid.csv', index=False)
+        joblib.dump(clf, filepath)
 
 
 if __name__ == '__main__':
-    main()
+    train_model()
