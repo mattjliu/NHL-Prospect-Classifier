@@ -13,7 +13,7 @@ if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
 
-def train_model(verbose=True, show_features=100, save_path='classifiers', long_reports=True):
+def train_and_predict(verbose=True, show_features=100, save_path='classifiers', long_reports=True):
 
     # ================================= Read in Data =================================
     train = pd.read_csv('data/merged/train.csv', encoding='utf-8', index_col=0)
@@ -22,6 +22,13 @@ def train_model(verbose=True, show_features=100, save_path='classifiers', long_r
     if long_reports:
         train = train[train.apply(lambda x: x.report.count('.'), axis=1) > 1]
         valid = valid[valid.apply(lambda x: x.report.count('.'), axis=1) > 1]
+
+    if verbose:
+        print(f'================== Training Distribution ==================')
+        print(train['NHL'].value_counts())
+        print(f'=========== Training Distribution by Draft Year ===========')
+        print(train.groupby(['draft_year', 'NHL']).size())
+        print('============================================================')
 
     # ================================= Model =================================
     clf = Pipeline([
@@ -50,9 +57,9 @@ def train_model(verbose=True, show_features=100, save_path='classifiers', long_r
         dir_name = 'long'
     else:
         dir_name = 'all'
-    if not os.path.exists(f'predictions/{dir_name}'):
-        os.makedirs(f'predictions/{dir_name}')
-    filepath = f'{save_path}/Logistic_Regression_{dir_name}.pkl'
+    if not os.path.exists(os.path.join('predictions', dir_name)):
+        os.makedirs(os.path.join('predictions', dir_name))
+    filepath = os.path.join(save_path, 'Logistic_Regression_{}.pkl'.format(dir_name))
     if verbose:
         print(f'Best cross validation score: {max(cv_results)}')
         print(f'Accuracy on training data: {np.mean(train_predictions == train.NHL)}')
@@ -62,20 +69,20 @@ def train_model(verbose=True, show_features=100, save_path='classifiers', long_r
 
         print('================= Erroneous Predictions =================')
         print(train[train.NHL != train.prediction].drop(columns='report'))
-        train[train.NHL != train.prediction].to_csv(f'predictions/{dir_name}/erroneous.csv', index=False)
+        train[train.NHL != train.prediction].to_csv(os.path.join('predictions', dir_name, 'erroneous.csv'), index=False)
 
         for year in valid.draft_year.unique():
             print(f'================= Predictions for {year} =================')
             print(valid[valid.draft_year == year].drop(columns='report'))
-            valid[valid.draft_year == year].to_csv(f'predictions/{dir_name}/{year}.csv', index=False)
+            valid[valid.draft_year == year].to_csv(os.path.join('predictions', dir_name, '{}.csv'.format(year)), index=False)
 
         print(f'================= Predictions for all Train Set =================')
         print(train.drop(columns='report'))
-        train.to_csv(f'predictions/{dir_name}/all_train.csv', index=False)
+        train.to_csv(os.path.join('predictions', dir_name, 'all_train.csv'), index=False)
 
         print(f'================= Predictions for all Validation Set =================')
         print(valid.drop(columns='report'))
-        valid.to_csv(f'predictions/{dir_name}/all_valid.csv', index=False)
+        valid.to_csv(os.path.join('predictions', dir_name, 'all_valid.csv'), index=False)
 
         train_true = train[train.NHL == True]
         train_true['report'] = train_true['report'] .str.lower()
@@ -100,13 +107,13 @@ def train_model(verbose=True, show_features=100, save_path='classifiers', long_r
         print('Model Saved')
 
     else:
-        train[train.NHL != train.prediction].to_csv(f'predictions/{dir_name}/erroneous.csv', index=False)
+        train[train.NHL != train.prediction].to_csv(os.path.join('predictions', dir_name, 'erroneous.csv'), index=False)
         for year in valid.draft_year.unique():
-            valid[valid.draft_year == year].to_csv(f'predictions/{dir_name}/{year}.csv', index=False)
-        train.to_csv(f'predictions/{dir_name}/all_train.csv', index=False)
-        valid.to_csv(f'predictions/{dir_name}/all_valid.csv', index=False)
+            valid[valid.draft_year == year].to_csv(os.path.join('predictions', dir_name, '{}.csv'.format(year)), index=False)
+        train.to_csv(os.path.join('predictions', dir_name, 'all_train.csv'), index=False)
+        valid.to_csv(os.path.join('predictions', dir_name, 'all_valid.csv'), index=False)
         joblib.dump(clf, filepath)
 
 
 if __name__ == '__main__':
-    train_model()
+    train_and_predict()

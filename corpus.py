@@ -5,7 +5,7 @@ import io
 pd.options.mode.chained_assignment = None
 
 
-def create_corpus(verbose=True, threshold=20):
+def create_corpus(verbose=True, threshold='mean'):
 
     reports = pd.read_csv('data/reports/reports_v2.csv', encoding='utf-8')
     stats = pd.read_csv('data/stats/stats_v2.csv', encoding='utf-8')
@@ -25,7 +25,17 @@ def create_corpus(verbose=True, threshold=20):
     reports2019 = reports[reports.draft_year == 2019]
     reports_hist = reports[reports.draft_year != 2019]
     merged = pd.merge(reports_hist.drop(columns='name'), stats, on=['draft_year', 'draft_num'], how='inner')
-    merged['NHL'] = merged['GP'] > threshold
+
+    # Define threshold games played depending on agg function or constant
+    if isinstance(threshold, str):
+        grouped_stat = merged.groupby('draft_year')['GP'].agg(threshold)
+        threshold_gp = merged.apply(lambda x: grouped_stat.loc[x.draft_year, ], axis=1)
+        if verbose:
+            print(f'================== {threshold.capitalize()} Games Played by Draft Year ==================')
+            print(grouped_stat)
+    else:
+        threshold_gp = threshold
+    merged['NHL'] = merged['GP'] > threshold_gp
 
     # Define train and valid set
     mask = (merged['draft_year'] >= 2016) & (merged['NHL'] == False)
@@ -46,7 +56,7 @@ def create_corpus(verbose=True, threshold=20):
         os.makedirs('data/NHLcorpus/false')
     try:
         for _, row in train.iterrows():
-            with io.open('data/NHLcorpus/{}/{}_{}.txt'.format(row.NHL, row['name'], row.draft_year), 'w', encoding='utf-8') as f:
+            with io.open(os.path.join('data/NHLcorpus', str(row.NHL), '{}_{}.txt'.format(row['name'], row.draft_year)), 'w', encoding='utf-8') as f:
                 f.write(row.report)
                 f.close()
     except OSError as e:
