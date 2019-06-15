@@ -193,6 +193,8 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
         joblib.dump(clf, filepath)
 
     # ================================= Plotting =================================
+    if not os.path.exists('plots'):
+        os.makedirs('plots')
     colors = {1: 'blue', 0: 'red'}
     fig = plt.figure(figsize=(16, 10))
     sns.scatterplot(x='adj_conf', y='GP', data=train, hue='clas', alpha=0.5, palette=colors)
@@ -201,7 +203,7 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
     plt.xlabel('Model Confidence')
     plt.ylabel('Games Played')
     plt.grid(linestyle='--')
-    fig.savefig('Train_Conf_vs_GP.png', bbox_inches='tight')
+    fig.savefig('plots/Train_Conf_vs_GP.png', bbox_inches='tight')
     if verbose:
         plt.show()
 
@@ -213,7 +215,7 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
     plt.xlabel('Model Confidence')
     plt.ylabel('Word Count')
     plt.grid(linestyle='--')
-    fig.savefig("Train_Conf_vs_Word_Count.png", bbox_inches='tight')
+    fig.savefig("plots/Train_Conf_vs_Word_Count.png", bbox_inches='tight')
     if verbose:
         plt.show()
 
@@ -224,7 +226,7 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
     plt.xlabel('Word Count')
     plt.ylabel('Games Played')
     plt.grid(linestyle='--')
-    plt.savefig("Train_Word_Count_vs_GP.png", bbox_inches='tight')
+    plt.savefig("plots/Train_Word_Count_vs_GP.png", bbox_inches='tight')
     if verbose:
         plt.show()
 
@@ -237,7 +239,7 @@ def main(threshold, long_reports, verbose):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Define target of model')
     parser.add_argument('-t', '--threshold', dest='threshold', metavar='', type=str,
-                        help='Function or integer determining threshold of games played to be considered positive class.')
+                        help='String or integer determining threshold of games played to be considered positive class.')
     print_group = parser.add_mutually_exclusive_group()
     print_group.add_argument('-q', '--quiet', action='store_const', dest='verbose', const=False, help='Print quiet')
     print_group.add_argument('-v', '--verbose', action='store_const', dest='verbose', const=True, help='Print verbose')
