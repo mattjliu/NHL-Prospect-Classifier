@@ -5,12 +5,13 @@ import os
 import re
 import io
 import sys
+import shutil
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.linear_model import SGDClassifier
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV, cross_validate
+from sklearn.model_selection import cross_validate
 from sklearn.metrics import classification_report
 from sklearn.externals import joblib
 import warnings
@@ -60,15 +61,20 @@ def create_corpus(verbose=True, threshold='mean'):
 
     if not os.path.exists('data/merged'):
         os.makedirs('data/merged')
-    train.to_csv('data/merged/train.csv')
-    valid.to_csv('data/merged/valid.csv')
+    train.to_csv('data/merged/train.csv', index=False)
+    valid.to_csv('data/merged/valid.csv', index=False)
+    merged.to_csv('data/merged/all.csv', index=False)
+    reports2019.to_csv('data/merged/2019.csv', index=False)
     if verbose:
         print('Merged data created successfully')
 
-    if not os.path.exists('data/NHLcorpus/true'):
-        os.makedirs('data/NHLcorpus/true')
-    if not os.path.exists('data/NHLcorpus/false'):
-        os.makedirs('data/NHLcorpus/false')
+    if os.path.exists('data/NHLcorpus/true'):
+        shutil.rmtree('data/NHLcorpus/true')
+    if os.path.exists('data/NHLcorpus/false'):
+        shutil.rmtree('data/NHLcorpus/false')
+
+    os.makedirs('data/NHLcorpus/true')
+    os.makedirs('data/NHLcorpus/false')
     try:
         for _, row in train.iterrows():
             with io.open(os.path.join('data/NHLcorpus', str(row.clas), '{}_{}.txt'.format(row['name'], row.draft_year)), 'w', encoding='utf-8') as f:
@@ -104,13 +110,15 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
         ('vect', CountVectorizer(stop_words='english')),
         ('tfidf', TfidfTransformer()),
         ('clf', SGDClassifier(penalty='l2', alpha=1e-3,
-                              max_iter=1000, tol=None, loss='log', random_state=123))
+                              max_iter=1000, tol=None, loss='log', class_weight='balanced',
+                              random_state=123))
     ])
     if verbose:
         print('Training Model...')
 
     # ================================= Results =================================
-    cv_results = cross_validate(clf, train.report, train.clas, cv=10)['test_score']
+    scoring_metrics = {'ROC': 'roc_auc', 'acc': 'accuracy'}
+    cv_results = cross_validate(clf, train.report, train.clas, scoring=scoring_metrics, cv=10)
     clf.fit(train.report, train.clas)
     train_predictions, train_proba = clf.predict(train.report), clf.predict_proba(train.report)
     valid_predictions, valid_proba = clf.predict(valid.report), clf.predict_proba(valid.report)
@@ -139,7 +147,8 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
         os.makedirs(os.path.join('predictions', dir_name))
     filepath = os.path.join(save_path, 'Logistic_Regression_{}.pkl'.format(dir_name))
     if verbose:
-        print(f'Best cross validation score: {max(cv_results)}')
+        print('Average cross validation ROC score: {}'.format(np.mean(cv_results['test_ROC'])))
+        print('Average cross validation accuracy: {}'.format(np.mean(cv_results['test_acc'])))
         print(f'Accuracy on training data: {np.mean(train_predictions == train.clas)}')
 
         print('================= Classification Report on Train Set =================')
@@ -227,6 +236,17 @@ def train_and_predict(verbose=True, show_features=100, save_path='classifiers', 
     plt.ylabel('Games Played')
     plt.grid(linestyle='--')
     plt.savefig("plots/Train_Word_Count_vs_GP.png", bbox_inches='tight')
+    if verbose:
+        plt.show()
+
+    fig = plt.figure(figsize=(16, 10))
+    ax = fig.gca()
+    sns.scatterplot(x='adj_conf', y='word_count', data=valid, hue='prediction', alpha=0.5, palette=colors)
+    plt.title("Validation Data Confidence vs Word Count")
+    plt.xlabel('Model Confidence')
+    plt.ylabel('Word Count')
+    plt.grid(linestyle='--')
+    plt.savefig("plots/valid_Conf_vs_Word_Count.png", bbox_inches='tight')
     if verbose:
         plt.show()
 
