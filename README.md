@@ -14,7 +14,7 @@ Finally, all players with 1 sentence scouting reports were removed from the fina
 
 ## Training the Model
 
-The model used was a simple bag-of-words model. Logistic regression was used as the classifier given its probabilistic nature. Stop words were also filtered out and tf-idf was applied before training the model. 
+The model used was a simple bag-of-words model. Logistic regression was selected as the classifier given its probabilistic nature. Stop words were also filtered out and tf-idf was applied before training the model. 
 
 Because of lack-of-data (only 829 reports), a proper test set was not created. Instead, the model was simply cross-validated on the train set and predictions were produced on the validation set (the aformentioned "too early to tell" set of players).
 
@@ -108,7 +108,7 @@ The scraped (and merged) data can be found in [data/merged/](https://github.com/
 
 ## Further Reading
 
-A paper on this specific subject was written in 2017 by a sports analytics firm. Their analysis combined both prospect performance statistics and scouting reports to predict a player's future AHL performance. The quality and quantity of scouting report data used was also substantially better.
+A paper on this specific subject was written in 2017 by a hockey analytics firm. Their analysis combined both prospect performance statistics and scouting reports to predict a player's future AHL performance. The quality and quantity of scouting report data used was also substantially better.
 
 You can read the paper [here](https://pdfs.semanticscholar.org/2f0a/a4de57e251846b55de8792e5b5ef97264cfc.pdf).
 
