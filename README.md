@@ -110,5 +110,5 @@ The scraped (and merged) data can be found in [data/merged/](https://github.com/
 
 A paper on this specific subject was written in 2017 by a sports analytics firm. Their analysis combined both prospect performance statistics and scouting reports to predict a player's future AHL performance. The quality and quantity of scouting report data used was also substantially better.
 
-You can read the paper [here](http://statsportsconsulting.com/2017/02/22/text-mining-and-improving-nhl-draft-analytics/).
+You can read the paper [here](https://pdfs.semanticscholar.org/2f0a/a4de57e251846b55de8792e5b5ef97264cfc.pdf).
 
