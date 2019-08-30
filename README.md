@@ -71,6 +71,7 @@ Here is the list of the 20 most important positive and negative words (by order)
  20:game                 T:117 F:219
 
 ```
+The rather rudimentary nature of model definitely shows in the importance for some of these features.
 
 ## Predictions
 
