@@ -16,7 +16,7 @@ Finally, all players with 1 sentence scouting reports were removed from the fina
 
 The model used was a simple bag-of-words model. Logistic regression was selected as the classifier given its probabilistic nature. Stop words were also filtered out and tf-idf was applied before training the model. 
 
-Because of lack-of-data (only 829 reports), a proper test set was not created. Instead, the model was simply cross-validated on the train set and predictions were produced on the validation set (the aformentioned "too early to tell" set of players).
+Because of lack of data (only 829 reports), a proper test set was not created. Instead, the model was simply cross-validated on the train set and predictions were produced on the validation set (the aformentioned "too early to tell" set of players).
 
 Here are some (expectedly poor) performance metrics of the model:
 * Average cross validation ROC AUC: **0.6839**
